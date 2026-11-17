@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Video hướng dẫn cắm dây Robot Chó</title>
+  <style>
+    :root { --bg:#0e1217; --line:#2a3542; --text:#eef3f8; --muted:#8fa3b8; --acc:#2ec4b6; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Segoe UI,system-ui,sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:12px 18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+    h1 { margin:0; font-size:16px; } h1 span { color:var(--acc); }
+    .stage { max-width:1100px; margin:0 auto; padding:14px; }
+    .frame { background:#000; border:1px solid var(--line); border-radius:10px; aspect-ratio:16/9; overflow:hidden; position:relative; }
+    .frame img { width:100%; height:100%; object-fit:contain; display:block; }
+    .badge { position:absolute; left:10px; top:10px; background:rgba(0,0,0,.7); color:var(--acc); padding:6px 10px; border-radius:6px; font-size:12px; font-weight:600; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+    button, select { background:#223041; color:var(--text); border:1px solid var(--line); padding:10px 14px; border-radius:8px; cursor:pointer; }
+    button.primary { background:#134e4a; border-color:var(--acc); color:var(--acc); }
+    .bar { flex:1; min-width:140px; height:8px; background:#223041; border-radius:99px; overflow:hidden; }
+    .bar>i { display:block; height:100%; width:0; background:var(--acc); }
+    .thumbs { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:12px; }
+    .thumbs button { padding:0; opacity:.5; overflow:hidden; border-radius:6px; aspect-ratio:16/9; background:#223041; border:1px solid var(--line); cursor:pointer; }
+    .thumbs button.active, .thumbs button:hover { opacity:1; border-color:var(--acc); }
+    .thumbs img { width:100%; height:100%; object-fit:cover; display:block; }
+    .note { color:var(--muted); font-size:13px; margin-top:12px; line-height:1.5; }
+    video { width:100%; border-radius:10px; border:1px solid var(--line); margin-top:8px; background:#000; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Video hướng dẫn <span>cắm dây chi tiết</span></h1>
+    <div id="clock">—</div>
+  </header>
+  <div class="stage">
+    <p class="note">File MP4: <code>huong-dan/HUONG-DAN-CAM-DAY.mp4</code> — xem bằng trình phát video bên dưới hoặc slideshow.</p>
+    <video id="vid" controls src="huong-dan/HUONG-DAN-CAM-DAY.mp4"></video>
+    <div class="frame" style="margin-top:14px">
+      <img id="slide" alt="slide" />
+      <div class="badge" id="badge">Bước</div>
+    </div>
+    <div class="controls">
+      <button id="prev">◀</button>
+      <button id="play" class="primary">▶ Phát slideshow</button>
+      <button id="next">▶</button>
+      <select id="speed">
+        <option value="2500" selected>2.5s/bước</option>
+        <option value="1800">1.8s</option>
+        <option value="4000">4s (chậm đọc)</option>
+      </select>
+      <div class="bar"><i id="progress"></i></div>
+    </div>
+    <div class="thumbs" id="thumbs"></div>
+    <p class="note">Phím: Space phát/dừng · ← → chuyển bước. Mỗi slide ghi rõ chân GPIO / màu dây / chỗ cắm.</p>
+  </div>
+<script>
+const slides = [
+  ["huong-dan/day/d00_bia.jpg", "Bìa — cắm dây chi tiết"],
+  ["huong-dan/day/d01_linh_kien.jpg", "0 — Nhận diện linh kiện"],
+  ["huong-dan/day/d02_pin_xl4015.jpg", "1 — Pin → XL4015"],
+  ["huong-dan/day/d03_chia_5v_33v.jpg", "2 — Chia 5V / 3.3V"],
+  ["huong-dan/day/d04_pca9685_nguon.jpg", "3 — Nguồn PCA9685"],
+  ["huong-dan/day/d05_mau_day_servo.jpg", "4 — Màu dây MG90S"],
+  ["huong-dan/day/d06_map_8_servo.jpg", "5 — Map CH0..CH7"],
+  ["huong-dan/day/d07_i2c.jpg", "6 — I2C ESP32"],
+  ["huong-dan/day/d08_srf04.jpg", "7 — SRF04 + chia áp"],
+  ["huong-dan/day/d09_inmp441.jpg", "8 — Micro INMP441"],
+  ["huong-dan/day/d10_max98357a.jpg", "9 — Ampli + loa"],
+  ["huong-dan/day/d11_bang_gpio.jpg", "10 — Bảng GPIO"],
+  ["huong-dan/day/d12_checklist.jpg", "11 — Checklist"],
+  ["huong-dan/day/d13_nap_code.jpg", "12 — Nạp code"],
+];
+let i=0, playing=false, timer=null;
+const img=document.getElementById('slide'), badge=document.getElementById('badge');
+const progress=document.getElementById('progress'), playBtn=document.getElementById('play');
+const thumbs=document.getElementById('thumbs'), clock=document.getElementById('clock');
+slides.forEach((s,idx)=>{ const b=document.createElement('button'); b.innerHTML=`<img src="${s[0]}" alt="">`; b.onclick=()=>go(idx); thumbs.appendChild(b); });
+function go(n){ i=(n+slides.length)%slides.length; img.src=slides[i][0]; badge.textContent=slides[i][1]; progress.style.width=((i+1)/slides.length*100)+'%'; [...thumbs.children].forEach((el,k)=>el.classList.toggle('active',k===i)); clock.textContent=`${i+1}/${slides.length}`;}
+function stop(){ playing=false; playBtn.textContent='▶ Phát slideshow'; clearInterval(timer);}
+function start(){ playing=true; playBtn.textContent='⏸ Dừng'; clearInterval(timer); timer=setInterval(()=>{ if(i>=slides.length-1){stop();return;} go(i+1);}, +document.getElementById('speed').value);}
+document.getElementById('prev').onclick=()=>{stop();go(i-1)}; document.getElementById('next').onclick=()=>{stop();go(i+1)};
+playBtn.onclick=()=>playing?stop():start();
+document.addEventListener('keydown',e=>{ if(e.code==='Space'){e.preventDefault();playing?stop():start();} if(e.code==='ArrowLeft'){stop();go(i-1);} if(e.code==='ArrowRight'){stop();go(i+1);} });
+go(0);
+</script>
+</body>
+</html>

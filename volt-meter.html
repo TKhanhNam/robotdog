@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Máy đo điện áp XL4015</title>
+  <style>
+    :root {
+      --bg: #0b0f14; --panel: #16202b; --line: #2c3d50; --text: #eef3f8;
+      --muted: #9bb0c4; --acc: #2ec4b6; --warn: #ffb454; --bad: #f07178; --ok: #7fd99a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Segoe UI, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    header {
+      padding: 14px 20px; border-bottom: 1px solid var(--line);
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    h1 { margin: 0; font-size: 18px; font-weight: 650; }
+    h1 b { color: var(--acc); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #445; display: inline-block; margin-right: 8px; }
+    .dot.on { background: var(--acc); box-shadow: 0 0 8px var(--acc); }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 18px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px 18px 16px;
+    }
+    .label { color: var(--muted); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+    .v { font-size: 52px; font-weight: 730; line-height: 1.1; margin: 10px 0 6px; font-variant-numeric: tabular-nums; }
+    .v small { font-size: 22px; color: var(--muted); font-weight: 600; }
+    .hint { color: var(--muted); font-size: 13px; }
+    .bar { height: 10px; background: #0e151c; border-radius: 99px; overflow: hidden; margin-top: 12px; }
+    .bar > i { display: block; height: 100%; width: 0; background: var(--acc); border-radius: 99px; }
+    .status {
+      margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: #121820;
+      border: 1px solid var(--line); font-size: 15px; font-weight: 650;
+    }
+    .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+    .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      background: #1b2836; color: var(--text); border: 1px solid var(--line);
+      padding: 10px 16px; border-radius: 10px; font-size: 14px; cursor: pointer;
+    }
+    button.big { background: #134e4a; border-color: var(--acc); color: var(--acc); font-weight: 700; }
+    canvas { width: 100%; height: 160px; background: #10161d; border: 1px solid var(--line); border-radius: 12px; margin-top: 14px; }
+    .wire {
+      margin-top: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px;
+      color: var(--muted); font-size: 14px; line-height: 1.55;
+    }
+    .wire h2 { margin: 0 0 8px; font-size: 15px; color: var(--text); }
+    .wire code, .wire pre {
+      font-family: ui-monospace, Consolas, monospace; color: var(--acc); background: #10161d;
+      border-radius: 8px; padding: 2px 6px;
+    }
+    .wire pre { padding: 12px 14px; overflow: auto; color: #d7e3ee; }
+    .log {
+      margin-top: 12px; height: 120px; overflow: auto; font-family: ui-monospace, Consolas, monospace;
+      font-size: 12px; color: var(--muted); background: #10161d; border-radius: 10px; padding: 10px; white-space: pre-wrap;
+    }
+    @media (max-width: 700px) {
+      .row { grid-template-columns: 1fr; }
+      .v { font-size: 42px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Máy đo <b>điện áp XL4015</b></h1>
+    <div class="btns">
+      <span><i class="dot" id="dot"></i><span id="conn">Chưa kết nối</span></span>
+      <button class="big" id="connect">Kết nối ESP32</button>
+      <button id="sim">Mô phỏng</button>
+    </div>
+  </header>
+  <div class="wrap">
+    <div class="row">
+      <div class="card">
+        <div class="label">Đầu vào hạ áp · GPIO 1 · pin 2S</div>
+        <div class="v" id="vin">--.-- <small>V</small></div>
+        <div class="hint" id="vinH">Chưa có số liệu</div>
+        <div class="bar"><i id="batt"></i></div>
+      </div>
+      <div class="card">
+        <div class="label">Đầu ra hạ áp · GPIO 2 · 5V</div>
+        <div class="v" id="vout">--.-- <small>V</small></div>
+        <div class="hint" id="voutH">Chưa có số liệu</div>
+        <div class="bar"><i id="rail"></i></div>
+      </div>
+    </div>
+    <div class="status" id="st">Chờ dữ liệu — mở Chrome/Edge, nạp <code>volt_meter.ino</code>, bấm Kết nối ESP32.</div>
+    <canvas id="cv" width="940" height="160"></canvas>
+    <div class="wire">
+      <h2>Cắm dây an toàn (ESP32 chỉ USB, chưa nối robot)</h2>
+      <p><b style="color:#ffb454">Không</b> nối IN+ hay OUT+ thẳng vào chân GPIO. Pin ~8.4V và 5V sẽ hỏng ESP32. Chỉ đo qua chia áp, GND chung.</p>
+      <pre>XL4015 IN+  ──[20 kΩ]──●── GPIO 1
+                        │
+                      [10 kΩ]
+                        │
+                       GND
+
+XL4015 OUT+ ──[20 kΩ]──●── GPIO 2
+                        │
+                      [10 kΩ]
+                        │
+                       GND
+
+ESP32: USB-C cấp nguồn. XL4015 GND = ESP32 GND.</pre>
+      <p>Điện trở khác cũng được nếu tỷ lệ ≈ 3. Ví dụ 22k + 10k, 30k + 10k (sửa <code>DIV_VIN</code> / <code>DIV_VOUT</code> trong <code>volt_meter.ino</code>).</p>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+<script>
+const vinEl = document.getElementById("vin");
+const voutEl = document.getElementById("vout");
+const vinH = document.getElementById("vinH");
+const voutH = document.getElementById("voutH");
+const batt = document.getElementById("batt");
+const rail = document.getElementById("rail");
+const st = document.getElementById("st");
+const logEl = document.getElementById("log");
+const dot = document.getElementById("dot");
+const conn = document.getElementById("conn");
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+
+let port, reader, simTimer;
+const hist = [];
+
+function log(m) {
+  logEl.textContent = m + "\n" + logEl.textContent.slice(0, 2500);
+}
+
+function fmt(v) {
+  return (Math.round(v * 1000) / 1000).toFixed(2);
+}
+
+function apply(vin, vout, pct) {
+  vinEl.innerHTML = fmt(vin) + " <small>V</small>";
+  voutEl.innerHTML = fmt(vout) + " <small>V</small>";
+  const p = Math.max(0, Math.min(100, pct ?? Math.round((vin - 6.4) / 2.0 * 100)));
+  batt.style.width = p + "%";
+  const railPct = Math.max(0, Math.min(100, (vout / 6) * 100));
+  rail.style.width = railPct + "%";
+
+  let vinMsg = "Pin 2S: đầy ~8.4V, nên > 6.8V";
+  let vinCls = "ok";
+  if (vin < 0.4) { vinMsg = "Chưa đo được IN+ (chưa cắm hoặc hở GND)"; vinCls = "warn"; }
+  else if (vin < 6.8) { vinMsg = "Pin yếu — sạc trước khi chạy servo"; vinCls = "warn"; }
+  else if (vin > 8.6) { vinMsg = "Cao bất thường — kiểm tra nối tiếp 2S"; vinCls = "bad"; }
+  else vinMsg = "Pin ổn · " + p + "%";
+  vinH.textContent = vinMsg;
+  vinH.className = "hint " + vinCls;
+
+  let voutMsg = "Mục tiêu 5.00V";
+  let voutCls = "ok";
+  if (vout < 0.4) { voutMsg = "Chưa đo được OUT+"; voutCls = "warn"; }
+  else if (vout < 4.7) { voutMsg = "Thấp — chỉnh trimmer XL4015 lên"; voutCls = "bad"; }
+  else if (vout > 5.4) { voutMsg = "Cao — chỉnh trimmer xuống (nguy hiểm servo)"; voutCls = "bad"; }
+  else voutMsg = "Rail 5V đạt";
+  voutH.textContent = voutMsg;
+  voutH.className = "hint " + voutCls;
+
+  rail.style.background = voutCls === "ok" ? "var(--acc)" : voutCls === "bad" ? "var(--bad)" : "var(--warn)";
+  batt.style.background = vinCls === "ok" ? "var(--acc)" : vinCls === "bad" ? "var(--bad)" : "var(--warn)";
+
+  if (vin < 0.4 && vout < 0.4) {
+    st.textContent = "ESP32 sống, chưa thấy điện áp XL4015 — kiểm tra chia áp và GND chung.";
+    st.className = "status warn";
+  } else if (voutCls === "ok" && (vinCls === "ok" || vin < 0.4)) {
+    st.textContent = "Điện áp ổn. Có thể nối lại PCA9685 / servo sau khi ngắt USB đo.";
+    st.className = "status ok";
+  } else {
+    st.textContent = "Chưa đạt — chỉnh XL4015 hoặc kiểm tra pin trước khi nối robot.";
+    st.className = "status " + (voutCls === "bad" || vinCls === "bad" ? "bad" : "warn");
+  }
+
+  hist.push({ vin, vout, t: Date.now() });
+  if (hist.length > 120) hist.shift();
+  draw();
+}
+
+function draw() {
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "#2c3d50";
+  ctx.beginPath();
+  for (let y = 1; y <= 3; y++) {
+    const yy = (h / 4) * y;
+    ctx.moveTo(0, yy); ctx.lineTo(w, yy);
+  }
+  ctx.stroke();
+  if (hist.length < 2) return;
+  const maxV = 10;
+  function line(key, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    hist.forEach((s, i) => {
+      const x = (i / (hist.length - 1)) * (w - 8) + 4;
+      const y = h - (s[key] / maxV) * (h - 12) - 6;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+  line("vin", "#2ec4b6");
+  line("vout", "#ffb454");
+}
+
+function parseLine(raw) {
+  const line = raw.trim();
+  if (!line) return;
+  log(line);
+  const m = line.match(/VOLT\s+(\{.*\})/);
+  if (!m) return;
+  try {
+    const j = JSON.parse(m[1]);
+    apply(j.vin, j.vout, j.pct);
+  } catch (e) {}
+}
+
+async function connect() {
+  if (!navigator.serial) {
+    st.textContent = "Trình duyệt không hỗ trợ Web Serial. Dùng Chrome/Edge, mở qua http://localhost (không mở file://).";
+    st.className = "status bad";
+    return;
+  }
+  stopSim();
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    dot.classList.add("on");
+    conn.textContent = "Đã kết nối 115200";
+    const dec = new TextDecoderStream();
+    port.readable.pipeTo(dec.writable);
+    reader = dec.readable.getReader();
+    let buf = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      const parts = buf.split(/\r?\n/);
+      buf = parts.pop();
+      parts.forEach(parseLine);
+    }
+  } catch (e) {
+    st.textContent = "Không mở được cổng: " + e.message;
+    st.className = "status bad";
+    log(String(e));
+  }
+  dot.classList.remove("on");
+  conn.textContent = "Mất kết nối";
+}
+
+function stopSim() {
+  if (simTimer) { clearInterval(simTimer); simTimer = null; }
+}
+
+function startSim() {
+  stopSim();
+  conn.textContent = "Mô phỏng";
+  dot.classList.add("on");
+  let t = 0;
+  simTimer = setInterval(() => {
+    t += 0.25;
+    const vin = 7.6 + Math.sin(t) * 0.25;
+    const vout = 5.02 + Math.sin(t * 1.7) * 0.03;
+    apply(vin, vout, Math.round((vin - 6.4) / 2 * 100));
+  }, 250);
+}
+
+document.getElementById("connect").onclick = connect;
+document.getElementById("sim").onclick = startSim;
+</script>
+</body>
+</html>

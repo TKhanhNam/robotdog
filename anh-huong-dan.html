@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ảnh hướng dẫn lắp — từng dây, từng bước</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0b0f14; color: #eef3f8; font-family: Segoe UI, system-ui, sans-serif; }
+    header { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; border-bottom: 1px solid #243040; }
+    h1 { margin: 0; font-size: 18px; font-weight: 650; }
+    h1 b { color: #2ec4b6; font-weight: 700; }
+    .pic {
+      width: 100%; max-width: 1280px; margin: 0 auto;
+      background: #000; min-height: 62vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pic img { width: 100%; height: auto; display: block; max-height: 78vh; object-fit: contain; }
+    .cap {
+      max-width: 1280px; margin: 0 auto; padding: 12px 16px 8px;
+      font-size: 22px; font-weight: 700; color: #2ec4b6;
+    }
+    .hint { max-width: 1280px; margin: 0 auto; padding: 0 16px 10px; color: #9bb0c4; font-size: 16px; }
+    .nav { max-width: 1280px; margin: 0 auto 16px; padding: 0 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    button {
+      background: #1b2836; color: #eef3f8; border: 1px solid #2c3d50;
+      padding: 12px 18px; border-radius: 10px; font-size: 16px; cursor: pointer;
+    }
+    button.big { background: #134e4a; border-color: #2ec4b6; color: #2ec4b6; font-weight: 700; }
+    .dots { display: flex; gap: 6px; flex-wrap: wrap; }
+    .dots i { width: 28px; height: 28px; border-radius: 50%; background: #223041; color: #9bb0c4; display: grid; place-items: center; font-size: 12px; font-style: normal; cursor: pointer; }
+    .dots i.on { background: #2ec4b6; color: #04221f; font-weight: 700; }
+    .thumbs { max-width: 1280px; margin: 0 auto 24px; padding: 0 16px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+    .thumbs img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; cursor: pointer; opacity: .45; border: 2px solid transparent; }
+    .thumbs img.on { opacity: 1; border-color: #2ec4b6; }
+    @media (max-width: 800px) { .thumbs { grid-template-columns: repeat(3, 1fr); } .cap { font-size: 18px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Ảnh lắp ráp <b>từng bước · từng dây</b></h1>
+    <div id="n">1 / 12</div>
+  </header>
+  <div class="pic"><img id="img" alt="Bước lắp" /></div>
+  <div class="cap" id="cap"></div>
+  <div class="hint" id="hint"></div>
+  <div class="nav">
+    <button id="prev">◀ Bước trước</button>
+    <button id="next" class="big">Bước sau ▶</button>
+    <div class="dots" id="dots"></div>
+  </div>
+  <div class="thumbs" id="thumbs"></div>
+<script>
+const steps = [
+  ["huong-dan/anh-tung-buoc/buoc-01-khung-trang.png", "Bước 1 — Nhận khung", "Dán nhãn 4 góc: FL / FR / BL / BR. Tấm trước = đầu chó."],
+  ["huong-dan/anh-tung-buoc/buoc-02-servo-hong.png", "Bước 2 — Servo hông", "Ốc servo vào góc thân. Dây: nâu=GND, đỏ=5V, cam=PWM. FL hông → CH0."],
+  ["huong-dan/anh-tung-buoc/buoc-03-servo-goi.png", "Bước 3 — Servo gối", "Gối gắn giữa đùi–ống. FL gối → CH1. Luồn dây vào trong thân."],
+  ["huong-dan/anh-tung-buoc/buoc-04-cam-jack-servo.png", "Bước 4 — Cắm jack 3 pin", "Mỗi CH trên PCA9685: trên=PWM (cam), giữa=5V (đỏ), dưới=GND (nâu). Không lệch 1 chân."],
+  ["huong-dan/anh-tung-buoc/buoc-05-8-servo-pca.png", "Bước 5 — 8 dây vào CH0–CH7", "FL 0/1 · FR 2/3 · BL 4/5 · BR 6/7. Dán nhãn từng dây trước khi cắm."],
+  ["huong-dan/anh-tung-buoc/buoc-06-nguon-5v.png", "Bước 6 — Pin → XL4015 = 5.00V", "2×18650 nối tiếp vào IN+/IN−. Đo OUT = 5.00V TRƯỚC khi cắm board."],
+  ["huong-dan/anh-tung-buoc/buoc-07-pca-nguon-i2c.png", "Bước 7 — Nguồn + I2C PCA9685", "V+=5V, VCC=3.3V, GND chung, SDA=GPIO8, SCL=GPIO9."],
+  ["huong-dan/anh-tung-buoc/buoc-08-esp32-i2c.png", "Bước 8 — ESP32 + MPU6050", "GPIO8/9 đi cả PCA9685 và MPU6050. MPU đặt giữa thân, X về đầu."],
+  ["huong-dan/anh-tung-buoc/buoc-09-srf04.png", "Bước 9 — Mắt siêu âm", "TRIG→GPIO10. ECHO không cắm thẳng: 1kΩ rồi GPIO11, 2kΩ xuống GND."],
+  ["huong-dan/anh-tung-buoc/buoc-10-micro.png", "Bước 10 — Micro INMP441", "WS→GPIO4, SCK→GPIO5, SD→GPIO6, L/R→GND, VDD→3.3V. Mic hướng ra ngoài."],
+  ["huong-dan/anh-tung-buoc/buoc-11-loa.png", "Bước 11 — Ampli + loa", "BCLK→GPIO16, LRC→GPIO17, DIN→GPIO18, VIN→5V. Loa dưới bụng, không hướng vào mic."],
+  ["huong-dan/anh-tung-buoc/buoc-12-hoan-thien.png", "Bước 12 — Hoàn thiện", "Buộc dây gọn. USB-C nạp code. Serial 115200 gõ stand rồi sit / walk."]
+];
+let i = 0;
+const img = document.getElementById("img");
+const cap = document.getElementById("cap");
+const hint = document.getElementById("hint");
+const n = document.getElementById("n");
+const dots = document.getElementById("dots");
+const thumbs = document.getElementById("thumbs");
+steps.forEach((s, k) => {
+  const d = document.createElement("i"); d.textContent = k+1; d.onclick = () => go(k); dots.appendChild(d);
+  const t = document.createElement("img"); t.src = s[0]; t.onclick = () => go(k); thumbs.appendChild(t);
+});
+function go(k) {
+  i = (k + steps.length) % steps.length;
+  img.src = steps[i][0];
+  cap.textContent = steps[i][1];
+  hint.textContent = steps[i][2];
+  n.textContent = (i+1) + " / " + steps.length;
+  [...dots.children].forEach((el, j) => el.classList.toggle("on", j===i));
+  [...thumbs.children].forEach((el, j) => el.classList.toggle("on", j===i));
+}
+document.getElementById("prev").onclick = () => go(i-1);
+document.getElementById("next").onclick = () => go(i+1);
+document.addEventListener("keydown", e => {
+  if (e.code === "ArrowLeft") go(i-1);
+  if (e.code === "ArrowRight" || e.code === "Space") { e.preventDefault(); go(i+1); }
+});
+go(0);
+</script>
+</body>
+</html>

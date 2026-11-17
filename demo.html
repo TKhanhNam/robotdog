@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Robot Dog — Gait Demo</title>
+  <style>
+    :root { --bg:#0f1419; --panel:#1a222c; --line:#2c3a48; --text:#e8eef4; --muted:#8aa0b5; --acc:#3dd6c6; --warn:#ffb454; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Segoe UI, system-ui, sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:16px 24px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
+    h1 { margin:0; font-size:18px; font-weight:600; }
+    h1 span { color:var(--acc); }
+    .wrap { display:grid; grid-template-columns: 1fr 320px; gap:16px; padding:16px; max-width:1200px; margin:0 auto; }
+    canvas { width:100%; background:#121820; border:1px solid var(--line); border-radius:8px; }
+    .side { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; }
+    .btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+    button { background:#243040; color:var(--text); border:1px solid var(--line); padding:10px; border-radius:6px; cursor:pointer; font-size:13px; }
+    button:hover { border-color:var(--acc); }
+    button.active { background:#134e4a; border-color:var(--acc); color:var(--acc); }
+    .log { font-family: ui-monospace, Consolas, monospace; font-size:12px; color:var(--muted); height:220px; overflow:auto; white-space:pre-wrap; background:#121820; padding:10px; border-radius:6px; }
+    .stat { font-size:13px; color:var(--muted); margin:8px 0 16px; }
+    .stat b { color:var(--text); }
+    .note { font-size:12px; color:var(--warn); margin-top:12px; line-height:1.45; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Robot Dog <span>gait demo</span> — cùng thuật toán trot trong GaitController.h</h1>
+    <div id="fps">—</div>
+  </header>
+  <div class="wrap">
+    <canvas id="cv" width="840" height="520"></canvas>
+    <aside class="side">
+      <div class="btns">
+        <button id="walk">walk / đi</button>
+        <button id="run">run / chạy</button>
+        <button id="sit">sit / ngồi</button>
+        <button id="stand">stand / đứng</button>
+        <button id="stop">stop / dừng</button>
+        <button id="getup">getup / dậy</button>
+        <button id="fall">giả lập ngã</button>
+        <button id="obs">giả lập vật cản</button>
+      </div>
+      <div class="stat">Trạng thái: <b id="st">Stand</b><br>Phase: <b id="ph">0.00</b><br>Pitch/Roll giả: <b id="im">0 / 0</b></div>
+      <div class="log" id="log"></div>
+      <p class="note">Đây là mô phỏng trên máy tính. Phần cứng ESP32-S3 + servo chưa gắn nên không nạp firmware thật được. Mở Serial 115200 trên board thật và gõ cùng lệnh.</p>
+    </aside>
+  </div>
+<script>
+const NEUTRAL = { flHip:90, flKnee:110, frHip:90, frKnee:110, blHip:90, blKnee:110, brHip:90, brKnee:110 };
+const AMP_WALK = 22, AMP_RUN = 30, STEP_WALK = 40, STEP_RUN = 22;
+
+let state = "Stand";
+let phase = 0;
+let lastStep = 0;
+let getUpStep = 0;
+let pose = { ...NEUTRAL };
+let fallen = false, obstacle = false, pitch = 0, roll = 0;
+
+const logEl = document.getElementById("log");
+function log(m) {
+  const t = new Date().toLocaleTimeString();
+  logEl.textContent = `[${t}] ${m}\n` + logEl.textContent;
+}
+function setState(s) {
+  if (s === state && s !== "GetUp") return;
+  state = s; phase = 0; getUpStep = 0;
+  if (s === "Stand" || s === "Stop" || s === "Idle") pose = { ...NEUTRAL };
+  if (s === "Sit") pose = { flHip:90, flKnee:135, frHip:90, frKnee:135, blHip:90, blKnee:155, brHip:90, brKnee:155 };
+  document.getElementById("st").textContent = s;
+  document.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+  const map = { Walk:"walk", Run:"run", Sit:"sit", Stand:"stand", Stop:"stop", GetUp:"getup" };
+  if (map[s]) document.getElementById(map[s]).classList.add("active");
+  log("setState " + s);
+}
+
+function hip(base, s, amp) { return base + s * amp; }
+function knee(base, s, amp) { return base - (s > 0 ? s * amp * 0.9 : 0); }
+function stepGait(amp, speed) {
+  phase += 0.25 * speed;
+  if (phase > Math.PI * 2) phase -= Math.PI * 2;
+  const s0 = Math.sin(phase), s1 = Math.sin(phase + Math.PI);
+  pose.flHip = hip(NEUTRAL.flHip, s0, amp); pose.flKnee = knee(NEUTRAL.flKnee, s0, amp);
+  pose.brHip = hip(NEUTRAL.brHip, s0, amp); pose.brKnee = knee(NEUTRAL.brKnee, s0, amp);
+  pose.frHip = hip(NEUTRAL.frHip, s1, amp); pose.frKnee = knee(NEUTRAL.frKnee, s1, amp);
+  pose.blHip = hip(NEUTRAL.blHip, s1, amp); pose.blKnee = knee(NEUTRAL.blKnee, s1, amp);
+}
+
+function doGetUp() {
+  const steps = [
+    { flHip:70, flKnee:140, frHip:70, frKnee:140, blHip:70, blKnee:140, brHip:70, brKnee:140 },
+    { flHip:100, flKnee:100, frHip:100, frKnee:100, blHip:80, blKnee:120, brHip:80, brKnee:120 },
+    { flHip:95, flKnee:105, frHip:95, frKnee:105, blHip:95, blKnee:105, brHip:95, brKnee:105 },
+  ];
+  if (getUpStep < steps.length) { pose = steps[getUpStep++]; }
+  else { fallen = false; pitch = 0; roll = 0; setState("Stand"); }
+}
+
+["walk","run","sit","stand","stop","getup"].forEach(id => {
+  document.getElementById(id).onclick = () => {
+    const map = { walk:"Walk", run:"Run", sit:"Sit", stand:"Stand", stop:"Stop", getup:"GetUp" };
+    setState(map[id]);
+  };
+});
+document.getElementById("fall").onclick = () => {
+  fallen = true; pitch = 62; roll = 8;
+  log("MPU6050 fall detect pitch=62 → GetUp");
+  setState("GetUp");
+};
+document.getElementById("obs").onclick = () => {
+  obstacle = true;
+  if (state === "Walk" || state === "Run") {
+    log("SRF04 12cm obstacle → Stop");
+    setState("Stop");
+  } else log("SRF04 obstacle (không đi nên bỏ qua)");
+  setTimeout(() => obstacle = false, 1500);
+};
+
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+function rad(d) { return d * Math.PI / 180; }
+function drawLeg(x, y, hipA, kneeA, color, label, mirror) {
+  const hip = rad((hipA - 90) * (mirror ? -1 : 1));
+  const knee = rad((kneeA - 110) * 0.8);
+  const L1 = 54, L2 = 52;
+  const x1 = x + Math.sin(hip) * L1;
+  const y1 = y + Math.cos(hip) * L1;
+  const x2 = x1 + Math.sin(hip + knee) * L2;
+  const y2 = y1 + Math.cos(hip + knee) * L2;
+  ctx.strokeStyle = color; ctx.lineWidth = 7; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x, y, 6, 0, 6.28); ctx.fill();
+  ctx.beginPath(); ctx.arc(x1, y1, 5, 0, 6.28); ctx.fill();
+  ctx.beginPath(); ctx.arc(x2, y2, 4, 0, 6.28); ctx.fill();
+  ctx.fillStyle = "#8aa0b5"; ctx.font = "11px sans-serif";
+  ctx.fillText(label, x - 18, y - 12);
+}
+
+function render() {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = "#1e2a36";
+  ctx.fillRect(0, 400, cv.width, 120);
+  ctx.strokeStyle = "#2c3a48"; ctx.beginPath(); ctx.moveTo(40, 400); ctx.lineTo(800, 400); ctx.stroke();
+
+  const bodyY = 210 + (state === "Sit" ? 28 : 0) + (fallen && state === "GetUp" && getUpStep < 2 ? 40 : 0);
+  ctx.fillStyle = "#2a3d50";
+  ctx.beginPath(); ctx.roundRect(250, bodyY, 340, 70, 16); ctx.fill();
+  ctx.fillStyle = "#3dd6c6"; ctx.font = "13px sans-serif";
+  ctx.fillText("ESP32-S3  ·  PCA9685  ·  MPU6050", 310, bodyY + 28);
+  ctx.fillStyle = "#8aa0b5";
+  ctx.fillText("FRONT →", 560, bodyY + 52);
+  ctx.fillRect(575, bodyY + 8, 36, 22);
+  ctx.fillStyle = "#ffb454"; ctx.fillText("SRF04", 572, bodyY);
+
+  drawLeg(280, bodyY + 70, pose.blHip, pose.blKnee, "#6ee7b7", "BL CH4/5", false);
+  drawLeg(360, bodyY + 70, pose.flHip, pose.flKnee, "#fb923c", "FL CH0/1", false);
+  drawLeg(480, bodyY + 70, pose.frHip, pose.frKnee, "#60a5fa", "FR CH2/3", true);
+  drawLeg(560, bodyY + 70, pose.brHip, pose.brKnee, "#c084fc", "BR CH6/7", true);
+
+  ctx.fillStyle = "#e8eef4"; ctx.font = "12px ui-monospace, Consolas, monospace";
+  const lines = [
+    `FL hip ${pose.flHip.toFixed(0)}  knee ${pose.flKnee.toFixed(0)}`,
+    `FR hip ${pose.frHip.toFixed(0)}  knee ${pose.frKnee.toFixed(0)}`,
+    `BL hip ${pose.blHip.toFixed(0)}  knee ${pose.blKnee.toFixed(0)}`,
+    `BR hip ${pose.brHip.toFixed(0)}  knee ${pose.brKnee.toFixed(0)}`,
+  ];
+  lines.forEach((t,i) => ctx.fillText(t, 40, 40 + i * 18));
+  if (obstacle) {
+    ctx.fillStyle = "#ffb454";
+    ctx.fillRect(700, 300, 18, 100);
+    ctx.fillText("vật cản <18cm", 660, 290);
+  }
+}
+
+let acc = 0, frames = 0, lastFps = performance.now();
+function tick(now) {
+  const dt = now - (tick.prev || now); tick.prev = now;
+  acc += dt;
+  const interval = state === "Run" ? STEP_RUN : state === "Walk" ? STEP_WALK : 80;
+  if (acc >= interval) {
+    acc = 0;
+    if (state === "Walk") stepGait(AMP_WALK, 1.0);
+    if (state === "Run") stepGait(AMP_RUN, 1.4);
+    if (state === "GetUp") doGetUp();
+  }
+  document.getElementById("ph").textContent = phase.toFixed(2);
+  document.getElementById("im").textContent = pitch.toFixed(0) + " / " + roll.toFixed(0);
+  render();
+  frames++;
+  if (now - lastFps > 1000) {
+    document.getElementById("fps").textContent = frames + " fps";
+    frames = 0; lastFps = now;
+  }
+  requestAnimationFrame(tick);
+}
+setState("Stand");
+log("Demo sẵn sàng — cùng công thức trot với firmware (sin phase, FL+BR cùng pha).");
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

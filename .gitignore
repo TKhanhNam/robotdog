@@ -1,0 +1,22 @@
+# Arduino / build
+build/
+*.elf
+*.bin
+*.map
+*.hex
+.cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Local serial helper leftover
+_s.py

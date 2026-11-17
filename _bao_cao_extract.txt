@@ -1,0 +1,296 @@
+BÁO CÁO BÀI TẬP NHÓM
+TRẠM GIÁM SÁT NÔNG NGHIỆP THÔNG MINH(SMART FARM)Phiên bản mô phỏng trên Proteus 8 – Arduino Uno
+Thông tin nhóm
+STT
+Họ và tên
+MSSV
+Nhiệm vụ trong nhóm
+1
+…………………
+…………
+Tìm hiểu lý thuyết / viết báo cáo
+2
+…………………
+…………
+Thiết kế mạch Proteus
+3
+…………………
+…………
+Viết code Arduino
+4
+…………………
+…………
+Mô phỏng, kiểm thử, hoàn thiện
+MỤC LỤC
+1. Mở đầu
+2. Khái niệm và cơ sở lý thuyết
+2.1. Nông nghiệp thông minh (Smart Farm / Smart Agriculture)
+2.2. Hệ thống giám sát môi trường trồng trọt
+2.3. Vai trò của cảm biến và cảnh báo tự động
+3. Vai trò và ứng dụng của sản phẩm
+4. Tổng quan sản phẩm
+4.1. Mô tả sản phẩm
+4.2. Chức năng chính
+4.3. So sánh với sản phẩm gốc ESP32
+5. Linh kiện và thiết bị sử dụng
+6. Thiết kế phần cứng trên Proteus
+7. Thiết kế phần mềm
+8. Kết quả mô phỏng và đánh giá
+9. Kết luận và hướng phát triển
+10. Tài liệu tham khảo
+Phụ lục. Mã nguồn Arduino
+1. Mở đầu
+Nông nghiệp hiện đại đang chuyển dần từ canh tác dựa vào kinh nghiệm sang canh tác dựa trên dữ liệu. Việc theo dõi liên tục nhiệt độ không khí và độ ẩm đất giúp người trồng chủ động điều chỉnh tưới tiêu, hạn chế cây bị khô hạn hoặc úng nước, từ đó nâng cao năng suất và giảm lãng phí.
+Bài tập nhóm của chúng em lấy cảm hứng từ dự án BLKLab_PRJ01 – Trạm giám sát nông nghiệp thông minh (Smart Farm). Do yêu cầu thực hiện trên phần mềm Proteus 8, nhóm không dùng ESP32, OLED và DHT11 mà chuyển sang Arduino Uno R3 cùng các linh kiện dễ mô phỏng: LM35, biến trở, LED, Buzzer và COMPIM.
+Báo cáo trình bày khái niệm liên quan, vai trò – ứng dụng của sản phẩm, mô tả chi tiết phần cứng và phần mềm, kết quả mô phỏng và hướng phát triển tiếp theo.
+2. Khái niệm và cơ sở lý thuyết
+2.1. Nông nghiệp thông minh (Smart Farm / Smart Agriculture)
+Nông nghiệp thông minh là hướng tiếp cận sử dụng cảm biến, vi điều khiển, truyền thông và phần mềm để thu thập – xử lý – phản hồi thông tin môi trường trồng trọt theo thời gian thực. Mục tiêu là tối ưu nước tưới, phân bón, điều kiện khí hậu và giảm công sức giám sát thủ công.
+Trong phạm vi bài tập, nhóm tập trung vào lớp chức năng nền tảng nhất của Smart Farm: đo thông số môi trường, so sánh với ngưỡng an toàn và phát cảnh báo khi điều kiện bất lợi.
+2.2. Hệ thống giám sát môi trường trồng trọt
+Một hệ thống giám sát nông nghiệp điển hình gồm ba khối:
+Khối cảm biến: đo nhiệt độ, độ ẩm không khí, độ ẩm đất, ánh sáng,…
+Khối xử lý: vi điều khiển đọc tín hiệu, tính toán, ra quyết định.
+Khối đầu ra: hiển thị, cảnh báo (LED, còi), điều khiển thiết bị (bơm, quạt), hoặc gửi dữ liệu lên app.
+Trên Proteus, khối cảm biến được đơn giản hóa: LM35 đo nhiệt độ; biến trở giả lập độ ẩm đất (vì cảm biến đất thật khó mô phỏng đầy đủ). Khối đầu ra dùng LED + Buzzer và cổng Serial.
+2.3. Vai trò của cảm biến và cảnh báo tự động
+Cảm biến nhiệt độ giúp nhận biết thời điểm môi trường quá nóng hoặc quá lạnh, ảnh hưởng đến sinh trưởng cây trồng. Độ ẩm đất phản ánh nhu cầu tưới: quá thấp dễ héo, quá cao dễ thối rễ.
+Cảnh báo tự động (đèn, còi) giúp người dùng biết ngay khi có bất thường, không cần theo dõi liên tục bằng mắt. Đây là bước trung gian trước khi nâng cấp lên điều khiển tự động (bật bơm tưới) hoặc giám sát từ xa qua Internet.
+Một số khái niệm kỹ thuật dùng trong bài:
+ADC (Analog-to-Digital Converter): chuyển điện áp analog thành số. Arduino Uno có ADC 10 bit (0–1023).
+LM35: cảm biến nhiệt độ analog, khoảng 10 mV/°C.
+Biến trở (POT): chỉnh điện áp, dùng để giả lập tín hiệu độ ẩm đất trên Proteus.
+Ngưỡng (threshold): khoảng giá trị cho phép; ngoài khoảng thì hệ thống cảnh báo.
+COMPIM: linh kiện Proteus mô phỏng cổng Serial để xem dữ liệu trên máy tính.
+3. Vai trò và ứng dụng của sản phẩm
+3.1. Vai trò
+Sản phẩm đóng vai trò như một trạm giám sát nhỏ giúp:
+Theo dõi nhiệt độ môi trường nơi trồng cây.
+Theo dõi mức độ ẩm đất (dạng giả lập trên Proteus).
+Cảnh báo kịp thời khi điều kiện vượt ngưỡng an toàn.
+Hỗ trợ học tập: hiểu quy trình đo – xử lý – cảnh báo trong hệ nhúng nông nghiệp.
+3.2. Ứng dụng thực tế
+Hướng ứng dụng của mô hình Smart Farm kiểu này gồm:
+Nhà kính / vườn rau quy mô nhỏ: cảnh báo khi nóng quá hoặc đất khô.
+Góc trồng cây trong nhà, ban công: nhắc người dùng tưới nước đúng lúc.
+Phòng lab / lớp học: mô hình demo nguyên lý IoT nông nghiệp trước khi làm kit thật.
+Nền tảng mở rộng: sau này gắn thêm bơm tưới, màn hình LCD, module WiFi để giám sát từ điện thoại.
+3.3. Ý nghĩa với bài tập nhóm
+Qua sản phẩm, nhóm nắm được cách chọn linh kiện thay thế khi mô phỏng, cách đọc cảm biến analog, cách đặt ngưỡng cảnh báo và cách trình bày kết quả trên Serial. Đây là kỹ năng nền để làm các bài hệ thống nhúng và IoT khác.
+4. Tổng quan sản phẩm
+4.1. Mô tả sản phẩm
+Tên sản phẩm: Trạm giám sát nông nghiệp thông minh (Smart Farm) – phiên bản mô phỏng Proteus.
+Sản phẩm là mạch ảo trên Proteus 8, điều khiển bởi Arduino Uno R3. Hệ thống đọc nhiệt độ từ LM35 và độ ẩm đất giả lập từ biến trở, hiển thị giá trị qua Serial (COMPIM), đồng thời bật LED đỏ và Buzzer khi có bất thường.
+4.2. Chức năng chính
+STT
+Chức năng
+Mô tả
+1
+Đo nhiệt độ
+Đọc LM35 tại chân A0, quy đổi ra °C
+2
+Giám sát độ ẩm đất
+Đọc POT tại A1, map thành 0–100%
+3
+So ngưỡng
+Nhiệt độ 20–35°C; độ ẩm đất 30–70%
+4
+Cảnh báo
+Bật LED (D8) và Buzzer (D9) khi vượt ngưỡng
+5
+Hiển thị dữ liệu
+In nhiệt độ, % ẩm đất, trạng thái ra Serial
+4.3. So sánh với sản phẩm gốc ESP32
+Sản phẩm gốc BLKLab_PRJ01 dùng ESP32, DHT11 (nhiệt độ + độ ẩm không khí), cảm biến độ ẩm đất, OLED, WiFi/Blynk và relay điều khiển tưới. Bản bài tập nhóm giữ lại ý tưởng giám sát nông nghiệp nhưng rút gọn để chạy được trên Proteus:
+Hạng mục
+Bản gốc (ESP32)
+Bản bài tập nhóm (Proteus)
+Vi điều khiển
+ESP32
+Arduino Uno R3
+Nhiệt độ
+DHT11
+LM35
+Độ ẩm không khí
+Có (DHT11)
+Không
+Độ ẩm đất
+Cảm biến soil moisture
+Biến trở POT-HG
+Màn hình
+OLED
+Serial / COMPIM
+Cảnh báo
+LED + Buzzer
+LED-RED + Buzzer
+Tưới tự động
+Relay
+Chưa làm (hướng mở rộng)
+IoT / app
+WiFi + Blynk
+Không
+5. Linh kiện và thiết bị sử dụng
+Danh mục linh kiện nhóm lấy trong Proteus:
+STT
+Gõ tìm
+Linh kiện lấy
+SL
+Vai trò trong sản phẩm
+1
+ARDUINO
+ARDUINO UNO R3
+1
+Bộ não xử lý tín hiệu và điều khiển cảnh báo
+2
+COMPIM
+COMPIM
+1
+Xuất dữ liệu Serial ra máy tính để theo dõi
+3
+POT
+POT-HG
+1
+Giả lập cảm biến độ ẩm đất
+4
+LM35
+LM35
+1
+Cảm biến nhiệt độ môi trường
+5
+LED
+LED-RED
+1
+Đèn báo trạng thái cảnh báo
+6
+RES
+RES = 220 Ω
+1
+Hạn dòng bảo vệ LED
+7
+BUZZER / SOUNDER
+Buzzer
+1
+Phát âm thanh cảnh báo
+Giải thích ngắn từng linh kiện:
+Arduino Uno R3 chạy chip ATmega328P, nguồn logic 5 V, có nhiều chân digital/analog, được hỗ trợ tốt trên Proteus và Arduino IDE nên phù hợp bài tập mô phỏng.
+LM35 cho tín hiệu điện áp tỷ lệ với nhiệt độ, dễ đọc bằng ADC. Đây là lựa chọn thay DHT11 vì DHT11 là cảm biến số one-wire, mô phỏng trên Proteus phức tạp hơn và đề bài không cho dùng.
+POT-HG tạo điện áp thay đổi khi xoay, đóng vai trò “cảm biến ảo” cho độ ẩm đất. Xoay tăng/giảm tương ứng đất ẩm hơn hoặc khô hơn trong mô phỏng.
+LED và Buzzer tạo phản hồi trực quan/âm thanh. COMPIM giúp quan sát số liệu đo mà không cần OLED.
+6. Thiết kế phần cứng trên Proteus
+6.1. Sơ đồ đấu nối
+Linh kiện
+Chân linh kiện
+Nối tới Arduino Uno
+LM35
+VCC
+5V
+LM35
+GND
+GND
+LM35
+OUT
+A0
+POT-HG
+Hai đầu cố định
+5V và GND
+POT-HG
+Chân giữa (wiper)
+A1
+RES 220 Ω + LED-RED
+Chuỗi anode → LED → cathode
+D8 → RES → LED → GND
+Buzzer
+Chân tín hiệu / GND
+D9 / GND
+COMPIM
+TXD, RXD
+RX (D0), TX (D1)
+6.2. Ngưỡng hoạt động
+Nhóm chọn ngưỡng minh họa cho cây trồng phổ biến (có thể chỉnh trong code theo từng loại cây):
+Thông số
+Ngưỡng dưới
+Ngưỡng trên
+Ý nghĩa
+Nhiệt độ (°C)
+20
+35
+Ngoài khoảng: môi trường bất lợi
+Độ ẩm đất (%)
+30
+70
+Dưới 30%: thiếu nước; trên 70%: dư ẩm
+6.3. Các bước dựng mạch
+Mở Proteus 8, tạo project mới.
+Nhấn P, tìm và đặt các linh kiện đúng danh mục mục 5.
+Đấu dây theo bảng mục 6.1; kiểm tra nguồn 5V/GND.
+Cấu hình COMPIM baud rate 9600.
+Biên dịch code Arduino ra file .hex và gán vào Arduino Uno trong Proteus.
+Nhấn Play để chạy mô phỏng, xoay POT và quan sát Serial, LED, Buzzer.
+7. Thiết kế phần mềm
+7.1. Luồng hoạt động chương trình
+Khởi tạo Serial 9600; đặt chân LED và Buzzer là OUTPUT.
+Đọc giá trị ADC chân A0 từ LM35.
+Đổi sang điện áp rồi tính nhiệt độ (°C).
+Đọc ADC chân A1 từ biến trở; map sang phần trăm độ ẩm đất.
+So sánh với ngưỡng nhiệt độ và độ ẩm đất.
+Nếu vượt ngưỡng: bật LED + Buzzer; nếu không: tắt cả hai.
+In kết quả ra Serial; chờ khoảng 0,8 giây rồi lặp lại.
+7.2. Công thức tính toán
+Với Arduino Uno, điện áp tham chiếu ADC mặc định là 5 V:
+Vout = analogRead(A0) × (5.0 / 1023.0)
+Nhiệt độ (°C) = Vout × 100
+Độ ẩm đất giả lập (%):
+Soil = map(analogRead(A1), 0, 1023, 0, 100)
+7.3. Các khối phần mềm
+Khối
+Nội dung
+Khai báo
+Định nghĩa chân A0, A1, D8, D9 và các ngưỡng TEMP/SOIL
+setup()
+Serial.begin, pinMode cho LED và Buzzer
+Đọc cảm biến
+analogRead + công thức quy đổi
+Ra quyết định
+Biến alarm = true/false theo ngưỡng
+Xuất cảnh báo
+digitalWrite LED và Buzzer
+Theo dõi
+Serial.print nhiệt độ, độ ẩm đất, trạng thái
+8. Kết quả mô phỏng và đánh giá
+8.1. Kịch bản kiểm thử
+STT
+Thao tác trên Proteus
+Kết quả mong đợi
+1
+Giữ nhiệt độ và POT trong ngưỡng
+Serial báo bình thường; LED tắt; Buzzer tắt
+2
+Làm nhiệt độ vượt trên 35°C
+Cảnh báo; LED sáng; Buzzer kêu
+3
+Xoay POT để độ ẩm đất < 30%
+Cảnh báo thiếu ẩm đất
+4
+Xoay POT để độ ẩm đất > 70%
+Cảnh báo dư ẩm đất
+5
+Đưa cả hai thông số về ngưỡng an toàn
+Hệ thống hết cảnh báo
+8.2. Đánh giá sản phẩm
+Ưu điểm:
+Mạch đơn giản, dễ dựng và dễ giải thích trong báo cáo nhóm.
+Thể hiện đủ vòng lặp cốt lõi của Smart Farm: đo – so ngưỡng – cảnh báo.
+Chạy được trên Proteus 8 với linh kiện có sẵn, không phụ thuộc kit ESP32 thật.
+Hạn chế:
+Chưa đo độ ẩm không khí.
+Độ ẩm đất chỉ mang tính giả lập bằng biến trở.
+8.3. Bài học rút ra
+Nhóm hiểu rõ hơn vì sao sản phẩm IoT nông nghiệp thật thường dùng ESP32, đồng thời nắm được cách đơn giản hóa bài toán để mô phỏng khi bị giới hạn linh kiện. Việc đặt ngưỡng hợp lý và quan sát dữ liệu Serial là bước quan trọng trước khi nâng cấp hệ thống.
+9. Kết luận và hướng phát triển
+Nhóm đã hoàn thành bài tập xây dựng trạm giám sát nông nghiệp thông minh dạng mô phỏng trên Proteus 8. Sản phẩm dùng Arduino Uno, LM35, biến trở, LED, Buzzer và COMPIM để đo nhiệt độ, giám sát độ ẩm đất giả lập và cảnh báo khi vượt ngưỡng. Báo cáo đã trình bày khái niệm Smart Farm, vai trò – ứng dụng, mô tả sản phẩm, thiết kế phần cứng/phần mềm và kết quả kiểm thử.
+Hướng phát triển tiếp theo:
+Thêm LCD 16x2 để xem số liệu ngay trên mạch Proteus.
+Thêm relay/motor giả lập bơm tưới khi đất khô.
+Cho phép chỉnh ngưỡng bằng biến trở hoặc nút nhấn.
+Chuyển lên phần cứng thật (ESP32 + DHT11 + cảm biến đất + OLED + Blynk) như dự án gốc.
+— Hết báo cáo nhóm —

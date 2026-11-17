@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ảnh lắp ESP32 — từng dây</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; background:#0b0f14; color:#eef3f8; font-family:Segoe UI,system-ui,sans-serif; }
+    header { padding:12px 16px; display:flex; justify-content:space-between; border-bottom:1px solid #243040; }
+    h1 { margin:0; font-size:18px; } h1 b { color:#2ec4b6; }
+    .pic { max-width:1280px; margin:0 auto; background:#000; }
+    .pic img { width:100%; display:block; max-height:78vh; object-fit:contain; }
+    .cap { max-width:1280px; margin:0 auto; padding:12px 16px 6px; font-size:22px; font-weight:700; color:#2ec4b6; }
+    .hint { max-width:1280px; margin:0 auto; padding:0 16px 12px; color:#9bb0c4; font-size:16px; }
+    .nav { max-width:1280px; margin:0 auto 16px; padding:0 16px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    button { background:#1b2836; color:#eef3f8; border:1px solid #2c3d50; padding:12px 18px; border-radius:10px; font-size:16px; cursor:pointer; }
+    button.big { background:#134e4a; border-color:#2ec4b6; color:#2ec4b6; font-weight:700; }
+    .thumbs { max-width:1280px; margin:0 auto 24px; padding:0 16px; display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+    .thumbs img { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:8px; cursor:pointer; opacity:.4; border:2px solid transparent; }
+    .thumbs img.on { opacity:1; border-color:#2ec4b6; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Lắp <b>ESP32-S3</b> — từng dây, từng màu</h1>
+    <div id="n">1</div>
+  </header>
+  <div class="pic"><img id="img" alt="" /></div>
+  <div class="cap" id="cap"></div>
+  <div class="hint" id="hint"></div>
+  <div class="nav">
+    <button id="prev">◀ Trước</button>
+    <button id="next" class="big">Sau ▶</button>
+  </div>
+  <div class="thumbs" id="thumbs"></div>
+<script>
+const steps = [
+  ["huong-dan/anh-esp32/e00-mau-day.jpg", "0 — 4 màu dây", "Đen GND · Cam 3.3V · Vàng SDA · Xanh SCL"],
+  ["huong-dan/anh-esp32/e01-huong-board.jpg", "1 — Đặt board", "USB-C bên phải. Hàng dưới: 3V3 … 8 … 9 … GND"],
+  ["huong-dan/anh-tung-buoc/esp32-4-day-that.png", "2 — Ảnh 4 dây trên ESP32", "Đen GND, cam 3V3, vàng 8, xanh 9. Không cắm 5V."],
+  ["huong-dan/anh-esp32/e02-day-den-gnd.jpg", "3 — Dây ĐEN = GND", "PCA GND → ESP32 GND (sát USB)"],
+  ["huong-dan/anh-esp32/e03-day-cam-3v3.jpg", "4 — Dây CAM = 3.3V", "PCA VCC → ESP32 3V3. Không vào 5V."],
+  ["huong-dan/anh-esp32/e04-day-vang-sda.jpg", "5 — Dây VÀNG = SDA", "PCA SDA → ESP32 chân 8"],
+  ["huong-dan/anh-esp32/e05-day-xanh-scl.jpg", "6 — Dây XANH = SCL", "PCA SCL → ESP32 chân 9 (cách 8 bởi chân 3 và 46)"],
+  ["huong-dan/anh-tung-buoc/esp32-close-8-9.png", "7 — Phóng to chân 8 và 9", "Vàng=8, xanh=9. Bỏ qua 3 và 46."],
+  ["huong-dan/anh-esp32/e06-bang-4-day.jpg", "8 — Bảng đủ 4 dây", "Kiểm tra 4 đường trước khi bật nguồn"],
+  ["huong-dan/anh-esp32/e08-checklist.jpg", "9 — Checklist", "USB COM, nạp code, gõ stand"],
+  ["huong-dan/anh-esp32/e07-phu-luc-chan-khac.jpg", "10 — Phụ lục chân sau", "Mic 4/5/6 · Loa 16/17/18 · Siêu âm 10/11"]
+];
+let i=0;
+const img=document.getElementById('img'), cap=document.getElementById('cap'), hint=document.getElementById('hint'), n=document.getElementById('n'), thumbs=document.getElementById('thumbs');
+steps.forEach((s,k)=>{ const t=document.createElement('img'); t.src=s[0]; t.onclick=()=>go(k); thumbs.appendChild(t); });
+function go(k){ i=(k+steps.length)%steps.length; img.src=steps[i][0]; cap.textContent=steps[i][1]; hint.textContent=steps[i][2]; n.textContent=(i+1)+'/'+steps.length; [...thumbs.children].forEach((el,j)=>el.classList.toggle('on',j===i)); }
+document.getElementById('prev').onclick=()=>go(i-1);
+document.getElementById('next').onclick=()=>go(i+1);
+document.addEventListener('keydown',e=>{ if(e.code==='ArrowLeft')go(i-1); if(e.code==='ArrowRight'||e.code==='Space'){e.preventDefault();go(i+1);} });
+go(0);
+</script>
+</body>
+</html>

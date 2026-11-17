@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ảnh lắp máy đo điện áp</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0b0f14; color: #eef3f8; font-family: Segoe UI, system-ui, sans-serif; }
+    header { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; border-bottom: 1px solid #243040; }
+    h1 { margin: 0; font-size: 18px; font-weight: 650; }
+    h1 b { color: #2ec4b6; }
+    .pic { width: 100%; max-width: 1280px; margin: 0 auto; background: #000; min-height: 58vh; display: flex; align-items: center; justify-content: center; }
+    .pic img { width: 100%; height: auto; display: block; max-height: 74vh; object-fit: contain; }
+    .cap { max-width: 1280px; margin: 0 auto; padding: 12px 16px 6px; font-size: 22px; font-weight: 700; color: #2ec4b6; }
+    .hint { max-width: 1280px; margin: 0 auto; padding: 0 16px 10px; color: #9bb0c4; font-size: 16px; line-height: 1.45; }
+    .nav { max-width: 1280px; margin: 0 auto 16px; padding: 0 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    button { background: #1b2836; color: #eef3f8; border: 1px solid #2c3d50; padding: 12px 18px; border-radius: 10px; font-size: 16px; cursor: pointer; }
+    button.big { background: #134e4a; border-color: #2ec4b6; color: #2ec4b6; font-weight: 700; }
+    .thumbs { max-width: 1280px; margin: 0 auto 24px; padding: 0 16px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .thumbs img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; cursor: pointer; opacity: .45; border: 2px solid transparent; }
+    .thumbs img.on { opacity: 1; border-color: #2ec4b6; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Lắp máy đo <b>điện áp</b> — hình từng bộ phận</h1>
+    <div id="n">1 / 5</div>
+  </header>
+  <div class="pic"><img id="img" alt="Bước" /></div>
+  <div class="cap" id="cap"></div>
+  <div class="hint" id="hint"></div>
+  <div class="nav">
+    <button id="prev">◀ Ảnh trước</button>
+    <button id="next" class="big">Ảnh sau ▶</button>
+  </div>
+  <div class="thumbs" id="thumbs"></div>
+<script>
+const steps = [
+  ["huong-dan/anh-volt-meter/01-linh-kien.png", "Ảnh 1 — Năm thứ cần dùng", "Điện trở 10k và 20k là CỤC NHỎ HAI CHÂN, không phải dây. Dây jumper chỉ để nối. Thêm XL4015 và ESP32."],
+  ["huong-dan/anh-volt-meter/02-dien-tro.png", "Ảnh 2 — Nhận điện trở", "10k: sọc nâu-đen-cam. 20k hoặc 22k: sọc đỏ-đen-cam hoặc đỏ-đỏ-cam. Chân kim loại xoắn/cắm vào jumper."],
+  ["huong-dan/anh-volt-meter/03-xoan-chu-T.png", "Ảnh 3 — Làm chữ T", "Xoắn 1 chân 20k với 1 chân 10k = điểm giữa. Đầu 20k còn lại tới IN+ hoặc OUT+. Đầu 10k còn lại tới GND. Điểm giữa tới GPIO."],
+  ["huong-dan/anh-volt-meter/04-chan-board.png", "Ảnh 4 — Chân trên 2 board", "XL4015: IN+ IN− OUT+ OUT−. ESP32 chỉ dùng GND, chân 1, chân 2. USB cấp nguồn ESP32, không cắm vào chân 5V."],
+  ["huong-dan/anh-volt-meter/05-lap-xong.png", "Ảnh 5 — Lắp xong như thế này", "Dây đen = GND chung. Bộ T thứ nhất: IN+ → GPIO1. Bộ T thứ hai: OUT+ → GPIO2. Không nối IN+/OUT+ thẳng GPIO."]
+];
+let i = 0;
+const img = document.getElementById("img");
+const cap = document.getElementById("cap");
+const hint = document.getElementById("hint");
+const n = document.getElementById("n");
+const thumbs = document.getElementById("thumbs");
+steps.forEach((s, k) => {
+  const t = document.createElement("img"); t.src = s[0]; t.onclick = () => go(k); thumbs.appendChild(t);
+});
+function go(k) {
+  i = (k + steps.length) % steps.length;
+  img.src = steps[i][0];
+  cap.textContent = steps[i][1];
+  hint.textContent = steps[i][2];
+  n.textContent = (i+1) + " / " + steps.length;
+  [...thumbs.children].forEach((el, j) => el.classList.toggle("on", j===i));
+}
+document.getElementById("prev").onclick = () => go(i-1);
+document.getElementById("next").onclick = () => go(i+1);
+document.addEventListener("keydown", e => {
+  if (e.code === "ArrowLeft") go(i-1);
+  if (e.code === "ArrowRight" || e.code === "Space") { e.preventDefault(); go(i+1); }
+});
+go(0);
+</script>
+</body>
+</html>
