@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="bg">#FF0C1220</color>
+    <color name="bg_top">#FF162033</color>
+    <color name="card">#FF182033</color>
+    <color name="card_line">#FF2A3854</color>
+    <color name="hint">#FF9AA8C7</color>
+    <color name="title">#FFF4F7FF</color>
+    <color name="ok">#FF3DDC97</color>
+    <color name="warn">#FFFFC14D</color>
+    <color name="bad">#FFFF6B6B</color>
+    <color name="walk">#FF1FA971</color>
+    <color name="run">#FFE25B3C</color>
+    <color name="stand">#FF3B6FD8</color>
+    <color name="stop">#FFD64545</color>
+    <color name="sit">#FF5B4DB8</color>
+    <color name="aux">#FF2A354C</color>
+    <color name="accent">#FF7CFFC3</color>
+</resources>

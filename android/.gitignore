@@ -1,0 +1,14 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+build-log.txt
+
+# Khóa API — mỗi máy tự tạo file này từ ApiKeys.example.java
+app/src/main/java/com/example/robotdog/ApiKeys.java

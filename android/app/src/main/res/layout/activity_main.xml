@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_screen"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="28dp">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <FrameLayout
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:background="@drawable/bg_mark">
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_paw" />
+            </FrameLayout>
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Robot Dog AI"
+                    android:textColor="@color/title"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Connected to Robot Speaker"
+                    android:textColor="@color/hint"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Status Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/bg_card"
+            android:gravity="center_vertical"
+            android:padding="14dp">
+            <View
+                android:id="@+id/statusDot"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:background="@drawable/bg_dot" />
+            <TextView
+                android:id="@+id/status"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="Chưa kết nối"
+                android:textColor="@color/title" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCheck"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="Làm mới"
+                android:textColor="@color/accent" />
+        </LinearLayout>
+
+        <!-- Radar -->
+        <TextView style="@style/SectionLabel" android:text="Radar Vật Cản" />
+        <com.example.robotdog.RadarView
+            android:id="@+id/radar"
+            android:layout_width="match_parent"
+            android:layout_height="220dp" />
+
+        <!-- AI Chat & Mic -->
+        <TextView style="@style/SectionLabel" android:text="Trò chuyện AI (Loa Robot)" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="4dp">
+            <EditText
+                android:id="@+id/edtChat"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:hint="Nói chuyện, bảo đi / ngồi, hoặc mở nhạc"
+                android:inputType="text"
+                android:padding="12dp"
+                android:textColor="@color/white"
+                android:textColorHint="@color/hint"
+                android:textSize="14sp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMic"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:icon="@android:drawable/ic_btn_speak_now"
+                app:iconTint="@color/accent" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnHush"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="Dừng nói / dừng nhạc"
+                app:icon="@drawable/ic_stop"
+                app:iconTint="@color/bad" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSend"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                app:icon="@drawable/ic_rise"
+                app:iconTint="@color/accent" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCapture"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Phát nhạc Spotify / YouTube ra loa chó"
+            app:icon="@drawable/ic_beep" />
+
+        <!-- Movement -->
+        <TextView style="@style/SectionLabel" android:text="Di Chuyển" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnWalk" style="@style/MoveButton"
+                android:text="Đi bộ" app:backgroundTint="@color/walk" app:icon="@drawable/ic_walk" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRun" style="@style/MoveButton"
+                android:text="Chạy" app:backgroundTint="@color/run" app:icon="@drawable/ic_run" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStand" style="@style/MoveButton"
+                android:text="Đứng" app:backgroundTint="@color/stand" app:icon="@drawable/ic_stand" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStop" style="@style/MoveButton"
+                android:text="Dừng" app:backgroundTint="@color/stop" app:icon="@drawable/ic_stop" />
+        </LinearLayout>
+
+        <!-- Pose -->
+        <TextView style="@style/SectionLabel" android:text="Tư thế &amp; Phụ trợ" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSit4" style="@style/PoseButton"
+                android:text="Ngồi 4 chân" app:icon="@drawable/ic_sit" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSit2" style="@style/PoseButton"
+                android:text="Ngồi 2 chân" app:icon="@drawable/ic_sit" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGetup" style="@style/PoseButton"
+                android:text="Dậy" app:icon="@drawable/ic_rise" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRelax" style="@style/PoseButton"
+                android:text="Thả servo" app:icon="@drawable/ic_relax" />
+        </LinearLayout>
+
+        <!-- Interaction -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBeep" style="@style/PoseButton"
+                android:text="Bíp" app:icon="@drawable/ic_beep" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnReply" style="@style/PoseButton"
+                android:text="Sủa" app:icon="@drawable/ic_beep" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTalkDog"
+            style="@style/PoseButton"
+            android:layout_width="match_parent"
+            android:text="Mic trên chó"
+            app:icon="@drawable/ic_beep" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:gravity="center"
+            android:text="Bật hotspot điện thoại, chó tự nối vào\nKhông có hotspot: nối WiFi RobotDog-7DA8 · robotdog123"
+            android:textColor="@color/hint"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+</ScrollView>
