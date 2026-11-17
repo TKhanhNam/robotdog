@@ -1,101 +1,101 @@
-# Robot Dog — chó robot ESP32-S3 nói chuyện bằng giọng nói
+# Robot Dog — a voice-controlled quadruped on ESP32-S3
 
-Chó robot bốn chân, điều khiển bằng app Android. Người dùng nói vào micro điện thoại, chó trả lời bằng loa gắn trên mình và thực hiện lệnh đi, chạy, ngồi, bắt tay. App tìm nhạc và phát qua loa chó.
+A four-legged robot controlled from an Android phone. The user speaks into the phone microphone; the dog answers through its own speaker and carries out commands such as walk, run, sit, and shake a paw. The app also finds music and plays it through the dog's speaker.
 
-Kho này gồm hai phần:
+This repository has two parts:
 
-| Thư mục | Vai trò |
+| Path | Role |
 |---|---|
-| Gốc repo (`robotdog.ino`, `config.h`, `*.h`) | Firmware Arduino cho ESP32-S3 |
-| [`android/`](android) | App Android (Java) |
+| Repository root (`robotdog.ino`, `config.h`, `*.h`) | Arduino firmware for the ESP32-S3 |
+| [`android/`](android) | Android app (Java) |
 
-## Hệ thống hoạt động thế nào
+## How it works
 
 ```
-Điện thoại (app)                         Chó (ESP32-S3)
-  Micro ── ghi âm ──► Groq Whisper            │
-  Chữ ── hỏi đáp ──► Gemini / Groq / OpenRouter
-  Câu trả lời ── giọng nói (TTS) ──┐          │
-  Lệnh đi / ngồi / bắt tay ────────┼─ WiFi ──► PCA9685 ── 8 servo MG90S
-  Nhạc (iTunes, Deezer, radio) ────┘          │
-                                          Loa MAX98357A
-                                          Micro INMP441
-                                          Cảm biến siêu âm HC-SR04 (quét đầu)
+Phone (app)                              Dog (ESP32-S3)
+  Mic ── recording ──► Groq Whisper           │
+  Text ── chat ──► Gemini / Groq / OpenRouter │
+  Reply ── speech (TTS) ──┐                   │
+  Walk / sit / shake ─────┼─ Wi-Fi ──► PCA9685 ── 8× MG90S servos
+  Music (iTunes, Deezer, ─┘                   │
+         internet radio)                  MAX98357A speaker
+                                          INMP441 microphone
+                                          HC-SR04 ultrasonic sensor (head sweep)
                                           MPU6050
 ```
 
-Điện thoại bật hotspot 2.4 GHz. Chó vừa phát WiFi riêng, vừa nối vào hotspot đó và gửi beacon UDP để app tìm thấy địa chỉ của nó. Nhờ vậy điện thoại vẫn có mạng để gọi AI.
+The phone shares a 2.4 GHz hotspot. The dog runs its own access point and also joins that hotspot, then broadcasts a UDP beacon so the app can find its address. The phone therefore keeps its internet connection and can call the AI services.
 
-## Phần cứng
+## Hardware
 
-- ESP32-S3 (USB CDC, flash 16 MB, PSRAM OPI)
-- PCA9685: 8 servo MG90S cho bốn chân, thêm kênh 8 quay đầu gắn HC-SR04
+- ESP32-S3 (USB CDC, 16 MB flash, OPI PSRAM)
+- PCA9685 driving 8 MG90S servos for the legs, plus channel 8 sweeping the head that carries the HC-SR04
 - MPU6050, INMP441, MAX98357A, HC-SR04
-- Nguồn: 2 pin 18650 nối tiếp qua XL4015 hạ xuống 5 V. Không cấp 7.4 V thẳng vào ESP32 hoặc servo.
+- Power: two 18650 cells in series, stepped down to 5 V by an XL4015. Never feed 7.4 V straight into the ESP32 or the servos.
 
-Sơ đồ nguồn, sơ đồ chân và ảnh lắp từng bước nằm ở [`README` cũ trong các mục bên dưới](#sơ-đồ-lắp-ráp) và thư mục [`huong-dan/`](huong-dan).
+Step-by-step wiring photos and videos are in [`huong-dan/`](huong-dan).
 
-### Kênh servo
+### Servo channels
 
-| Kênh | Khớp |
+| Channel | Joint |
 |---|---|
-| 0, 1 | Cẳng, đùi trái sau |
-| 2, 3 | Cẳng, đùi phải sau |
-| 4, 5 | Cẳng, đùi trái trước |
-| 6, 7 | Cẳng, đùi phải trước |
-| 8 | Đầu (cảm biến siêu âm) |
+| 0, 1 | Rear-left calf, rear-left thigh |
+| 2, 3 | Rear-right calf, rear-right thigh |
+| 4, 5 | Front-left calf, front-left thigh |
+| 6, 7 | Front-right calf, front-right thigh |
+| 8 | Head (ultrasonic sensor) |
 
-## Nạp firmware
+## Flashing the firmware
 
-1. Cài [Arduino IDE](https://www.arduino.cc/en/software) và board **esp32 by Espressif** (board ESP32S3 Dev Module).
-2. Mở thư mục này. File chính là `robotdog.ino`.
-3. Board: **ESP32S3 Dev Module**, USB CDC On Boot, Flash 16 MB, PSRAM OPI, partition `16M (3MB APP / 9.9MB FATFS)`.
-4. Chọn cổng COM của board rồi Upload.
-5. Serial Monitor 115200 sẽ in `FW gait v…`.
+1. Install the [Arduino IDE](https://www.arduino.cc/en/software) and the **esp32 by Espressif** boards package (board: ESP32S3 Dev Module).
+2. Open this folder. The main sketch is `robotdog.ino`.
+3. Board settings: **ESP32S3 Dev Module**, USB CDC On Boot, 16 MB flash, OPI PSRAM, partition scheme `16M (3MB APP / 9.9MB FATFS)`.
+4. Select the board's COM port and upload.
+5. The Serial Monitor at 115200 baud prints `FW gait v…`.
 
-Trong `config.h`, điền hotspot điện thoại trước khi nạp nếu muốn chó tự nối mạng:
+To let the dog join the phone's network, fill in the hotspot in `config.h` before uploading:
 
 ```cpp
-#define HOTSPOT_SSID     "ten-hotspot"
-#define HOTSPOT_PASS     "mat-khau"
+#define HOTSPOT_SSID     "hotspot-name"
+#define HOTSPOT_PASS     "password"
 ```
 
-### Lệnh Serial thường dùng
+### Useful serial commands
 
-| Lệnh | Tác dụng |
+| Command | Effect |
 |---|---|
-| `stand` `walk` `run` `sit4` `sit2` `stop` | Đứng, đi, chạy, ngồi bốn chân, ngồi hai chân sau, dừng |
-| `shakel` `shaker` `shake` | Bắt tay trái, phải, hoặc chọn ngẫu nhiên |
-| `move <kênh> <góc>` | Quay một servo, không lưu |
-| `set <kênh> <góc>` | Lưu góc đứng của một servo |
-| `signs` `show` `status` | Xem chiều đi, góc đứng, trạng thái |
-| `radar mid` / `radar go` | Giữ đầu ở giữa để lắp lại càng, rồi quét tiếp |
-| `relax` | Nhả hết servo |
+| `stand` `walk` `run` `sit4` `sit2` `stop` | Stand, walk, run, sit on all fours, sit on the hind legs, stop |
+| `shakel` `shaker` `shake` | Offer the left paw, the right paw, or a random paw |
+| `move <channel> <deg>` | Move one servo without saving |
+| `set <channel> <deg>` | Save the standing angle of one servo |
+| `signs` `show` `status` | Show gait directions, standing angles, status |
+| `radar mid` / `radar go` | Hold the head centered to refit the horn, then resume the sweep |
+| `relax` | Release all servos |
 
-## Chạy app Android
+## Running the Android app
 
-1. Mở thư mục `android/` bằng Android Studio.
-2. Copy `android/app/src/main/java/com/example/robotdog/ApiKeys.example.java` thành `ApiKeys.java` cùng thư mục, rồi điền khóa của mình:
-   - **Gemini** (Google AI Studio): hội thoại và giọng nói
-   - **Groq**: nhận giọng nói (Whisper) và hội thoại dự phòng
-   - **OpenRouter**: hội thoại dự phòng
-3. Cắm điện thoại, bật USB debugging, bấm Run. Hoặc `gradlew assembleDebug` rồi cài APK.
+1. Open the `android/` folder in Android Studio.
+2. Copy `android/app/src/main/java/com/example/robotdog/ApiKeys.example.java` to `ApiKeys.java` in the same folder and fill in your own keys:
+   - **Gemini** (Google AI Studio): conversation and speech
+   - **Groq**: speech recognition (Whisper) and a fallback for conversation
+   - **OpenRouter**: a fallback for conversation
+3. Connect the phone with USB debugging enabled and press Run, or run `gradlew assembleDebug` and install the APK.
 
-App cần Android 7 trở lên. Thu tiếng Spotify / YouTube ra loa chó cần Android 10.
+The app requires Android 7 or newer. Forwarding Spotify or YouTube audio to the dog's speaker requires Android 10.
 
-### Cách dùng app
+### Using the app
 
-1. Bật hotspot 2.4 GHz trên điện thoại (tên và mật khẩu trùng `config.h`).
-2. Mở app, đợi dòng trạng thái báo đã liên kết.
-3. Bấm các nút đi, chạy, ngồi, hoặc nói vào micro: "xin chào", "đi nào", "bắt tay", "bật nhạc …".
-4. Nút dừng cắt ngay câu đang nói hoặc bài nhạc.
+1. Turn on the phone's 2.4 GHz hotspot, using the same name and password as in `config.h`.
+2. Open the app and wait until the status line reports a link.
+3. Tap the walk, run, and sit buttons, or speak into the microphone: "xin chào", "đi nào", "bắt tay", "bật nhạc …".
+4. The stop button cuts the current reply or the music immediately.
 
-## Sơ đồ lắp ráp
+## Wiring
 
-### Nguồn
+### Power
 
 ```
-[18650]─tiếp─[18650] ≈ 7.4 V
+[18650]─series─[18650] ≈ 7.4 V
         │
      XL4015 OUT = 5.0 V
         │
@@ -104,15 +104,15 @@ PCA9685 V+   ESP32 5V   MAX98357A VIN   HC-SR04 VCC
    GND ──── GND ──── GND ──── GND
 ```
 
-3.3 V lấy từ ESP32 cấp cho PCA9685 VCC, MPU6050 và INMP441. Echo của HC-SR04 phải qua bộ chia áp trước khi vào GPIO, vì ESP32 không chịu 5 V trên chân.
+The ESP32's 3.3 V pin supplies the PCA9685 VCC, the MPU6050, and the INMP441. The HC-SR04 echo line must pass through a voltage divider before it reaches a GPIO, because the ESP32 pins are not 5 V tolerant.
 
 ### I2C
 
-| Tín hiệu | ESP32-S3 | Module |
+| Signal | ESP32-S3 | Modules |
 |---|---|---|
 | SDA | GPIO 8 | PCA9685, MPU6050 |
 | SCL | GPIO 9 | PCA9685, MPU6050 |
 
-PCA9685 địa chỉ `0x40`, MPU6050 địa chỉ `0x68`.
+The PCA9685 is at address `0x40` and the MPU6050 at `0x68`.
 
-Ảnh và video lắp từng dây nằm trong [`huong-dan/`](huong-dan).
+Photos and videos of each wire are in [`huong-dan/`](huong-dan).
